@@ -104,15 +104,18 @@ model Form {
   id          String   @id @default(cuid())
   orgId       String   @map("org_id")
   title       String
+  slug        String?  @unique
   description String?
   definition  Json
   published   Boolean  @default(false)
+  version     Int      @default(1)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   org         Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
   submissions FormSubmission[]
 
   @@index([orgId])
+  @@index([slug])
   @@map("forms")
 }
 
