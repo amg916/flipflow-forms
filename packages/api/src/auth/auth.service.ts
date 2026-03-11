@@ -1,4 +1,10 @@
-import { Injectable, ConflictException, UnauthorizedException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  UnauthorizedException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
@@ -89,5 +95,56 @@ export class AuthService {
 
   clearSessionCookie(res: Response) {
     res.clearCookie(SESSION_COOKIE_NAME, { path: '/' });
+  }
+
+  async createPasswordResetToken(email: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return null; // Don't reveal if user exists
+    }
+
+    // Invalidate existing tokens
+    await this.prisma.passwordToken.updateMany({
+      where: { userId: user.id, used: false },
+      data: { used: true },
+    });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await this.prisma.passwordToken.create({
+      data: {
+        userId: user.id,
+        token,
+        expiresAt,
+      },
+    });
+
+    return token;
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const passwordToken = await this.prisma.passwordToken.findUnique({ where: { token } });
+
+    if (!passwordToken || passwordToken.used || passwordToken.expiresAt < new Date()) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: passwordToken.userId },
+        data: { passwordHash },
+      }),
+      this.prisma.passwordToken.update({
+        where: { id: passwordToken.id },
+        data: { used: true },
+      }),
+      // Invalidate all sessions for this user
+      this.prisma.session.deleteMany({
+        where: { userId: passwordToken.userId },
+      }),
+    ]);
   }
 }

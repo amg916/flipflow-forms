@@ -3,6 +3,8 @@ import { Response } from 'express';
 import { SESSION_COOKIE_NAME } from '@flipflow/shared';
 import { AuthService } from './auth.service';
 import { SignupDto, LoginDto } from './auth.dto';
+import { ForgotPasswordDto, ResetPasswordDto } from './forgot-password.dto';
+import { EmailService } from './email.service';
 import { Cookies } from './cookies.decorator';
 import { CurrentUser } from './current-user.decorator';
 import { AuthGuard } from './auth.guard';
@@ -10,7 +12,10 @@ import { UseGuards } from '@nestjs/common';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly emailService: EmailService,
+  ) {}
 
   @Post('signup')
   async signup(@Body() dto: SignupDto, @Res({ passthrough: true }) res: Response) {
@@ -39,6 +44,24 @@ export class AuthController {
     }
     this.authService.clearSessionCookie(res);
     return { success: true };
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    const token = await this.authService.createPasswordResetToken(dto.email);
+    if (token) {
+      await this.emailService.sendPasswordResetEmail(dto.email, token);
+    }
+    // Always return success to not reveal if email exists
+    return { success: true, message: 'If the email exists, a reset link has been sent.' };
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    await this.authService.resetPassword(dto.token, dto.password);
+    return { success: true, message: 'Password has been reset.' };
   }
 
   @Get('me')
