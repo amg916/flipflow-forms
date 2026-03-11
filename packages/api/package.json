@@ -15,12 +15,17 @@
     "@nestjs/core": "^10.4.0",
     "@nestjs/platform-express": "^10.4.0",
     "@nestjs/config": "^3.3.0",
+    "class-validator": "^0.14.0",
+    "class-transformer": "^0.5.0",
+    "cookie-parser": "^1.4.0",
+    "helmet": "^8.0.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.0",
     "@flipflow/shared": "workspace:*"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.4.0",
+    "@types/cookie-parser": "^1.4.0",
     "@types/express": "^5.0.0",
     "@types/node": "^20.0.0",
     "typescript": "^5.7.0"
