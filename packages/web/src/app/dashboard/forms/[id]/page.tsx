@@ -137,7 +137,7 @@ export default function FormBuilderPage({ params }: { params: Promise<{ id: stri
 
   // Preview
   const handlePreview = () => {
-    window.open(`/f/${id}`, '_blank');
+    window.open(`/forms/${id}`, '_blank');
   };
 
   // --- Step operations ---

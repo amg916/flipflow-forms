@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-const PLACEHOLDER_ORG_ID = 'org_placeholder';
 
 interface Template {
   id: string;
@@ -15,6 +15,7 @@ interface Template {
 
 export default function NewFormPage() {
   const router = useRouter();
+  const { currentOrg } = useAuth();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [templateId, setTemplateId] = useState('');
@@ -25,7 +26,7 @@ export default function NewFormPage() {
   useEffect(() => {
     async function fetchTemplates() {
       try {
-        const res = await fetch(`${API_URL}/templates`);
+        const res = await fetch(`${API_URL}/templates`, { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
           setTemplates(data);
@@ -51,7 +52,7 @@ export default function NewFormPage() {
       const body: Record<string, string> = {
         title: title.trim(),
         description: description.trim(),
-        orgId: PLACEHOLDER_ORG_ID,
+        orgId: currentOrg?.id || '',
       };
       if (templateId) {
         body.templateId = templateId;
@@ -60,6 +61,7 @@ export default function NewFormPage() {
       const res = await fetch(`${API_URL}/forms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(body),
       });
 

@@ -1,15 +1,62 @@
+'use client';
+
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import DashboardProviders from './providers';
+import { useAuth } from '@/lib/auth';
 
 const navItems = [
   { label: 'Forms', href: '/dashboard/forms', icon: '▦' },
+  { label: 'Submissions', href: '/dashboard/submissions', icon: '◈' },
   { label: 'Templates', href: '/dashboard/templates', icon: '◫' },
+  { label: 'Webhooks', href: '/dashboard/webhooks', icon: '⇌' },
   { label: 'Integrations', href: '/dashboard/integrations', icon: '⬡' },
   { label: 'Analytics', href: '/dashboard/analytics', icon: '◩' },
   { label: 'Billing', href: '/dashboard/billing', icon: '▣' },
   { label: 'Settings', href: '/dashboard/settings', icon: '⚙' },
 ];
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+function DashboardShell({ children }: { children: React.ReactNode }) {
+  const { user, loading, logout } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/');
+    }
+  }, [loading, user, router]);
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '100vh',
+          color: '#6b7280',
+          fontSize: 15,
+        }}
+      >
+        Loading...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  const initials = user.name
+    ? user.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    : user.email[0].toUpperCase();
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       {/* Sidebar */}
@@ -93,14 +140,42 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               fontSize: 13,
               fontWeight: 600,
               color: '#ffffff',
+              flexShrink: 0,
             }}
           >
-            U
+            {initials}
           </div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 500, color: '#f3f4f6' }}>User Name</div>
-            <div style={{ fontSize: 11, color: '#9ca3af' }}>user@example.com</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 500, color: '#f3f4f6' }}>
+              {user.name || 'User'}
+            </div>
+            <div
+              style={{
+                fontSize: 11,
+                color: '#9ca3af',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {user.email}
+            </div>
           </div>
+          <button
+            onClick={logout}
+            title="Log out"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#9ca3af',
+              cursor: 'pointer',
+              fontSize: 16,
+              padding: 4,
+              lineHeight: 1,
+            }}
+          >
+            &#x2192;
+          </button>
         </div>
       </aside>
 
@@ -116,5 +191,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div style={{ padding: '32px 40px', maxWidth: 1200 }}>{children}</div>
       </main>
     </div>
+  );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <DashboardProviders>
+      <DashboardShell>{children}</DashboardShell>
+    </DashboardProviders>
   );
 }

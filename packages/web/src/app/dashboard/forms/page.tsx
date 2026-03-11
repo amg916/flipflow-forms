@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/lib/auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-const PLACEHOLDER_ORG_ID = 'org_placeholder';
 
 interface Form {
   id: string;
@@ -15,14 +15,18 @@ interface Form {
 }
 
 export default function FormsPage() {
+  const { currentOrg, loading: authLoading } = useAuth();
   const [forms, setForms] = useState<Form[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading || !currentOrg) return;
     async function fetchForms() {
       try {
-        const res = await fetch(`${API_URL}/forms?orgId=${PLACEHOLDER_ORG_ID}`);
+        const res = await fetch(`${API_URL}/forms?orgId=${currentOrg!.id}`, {
+          credentials: 'include',
+        });
         if (res.ok) {
           const data = await res.json();
           setForms(data);
@@ -34,7 +38,7 @@ export default function FormsPage() {
       }
     }
     fetchForms();
-  }, []);
+  }, [authLoading, currentOrg]);
 
   const filtered = forms.filter((f) => f.title.toLowerCase().includes(search.toLowerCase()));
 

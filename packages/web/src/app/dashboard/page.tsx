@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useAuth } from '@/lib/auth';
 
 const stats = [
   { label: 'Total Forms', value: '12', color: '#3b82f6' },
@@ -7,10 +10,14 @@ const stats = [
 ];
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+
+  const firstName = user?.name?.split(' ')[0] || '';
+
   return (
     <div>
       <h1 style={{ fontSize: 28, fontWeight: 700, color: '#111827', marginBottom: 8 }}>
-        Welcome back
+        Welcome back{firstName ? `, ${firstName}` : ''}
       </h1>
       <p style={{ fontSize: 15, color: '#6b7280', marginBottom: 32 }}>
         Here&apos;s an overview of your forms and submissions.
