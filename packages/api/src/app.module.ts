@@ -19,6 +19,7 @@ import { RequestLoggerMiddleware } from './middleware/request-logger.middleware'
 import { ComplianceModule } from './compliance/compliance.module';
 import { BillingModule } from './billing/billing.module';
 import { DomainsModule } from './domains/domains.module';
+import { OrgsModule } from './orgs/orgs.module';
 import { validate } from './env.validation';
 
 @Global()
@@ -52,6 +53,7 @@ import { validate } from './env.validation';
     ComplianceModule,
     BillingModule,
     DomainsModule,
+    OrgsModule,
   ],
   controllers: [HealthController],
   providers: [

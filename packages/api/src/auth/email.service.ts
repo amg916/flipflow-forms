@@ -54,4 +54,33 @@ export class EmailService {
 
     this.logger.log(`Password reset email sent to ${to}`);
   }
+
+  async sendEmail(to: string, subject: string, htmlContent: string): Promise<void> {
+    if (!this.apiKey) {
+      this.logger.warn(`[DEV STUB] Email to ${to}: ${subject}`);
+      this.logger.warn(`[DEV STUB] Content: ${htmlContent}`);
+      return;
+    }
+
+    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: to }] }],
+        from: { email: this.fromEmail, name: 'FlipFlow' },
+        subject,
+        content: [{ type: 'text/html', value: htmlContent }],
+      }),
+    });
+
+    if (!response.ok) {
+      this.logger.error(`SendGrid error: ${response.status} ${await response.text()}`);
+      throw new Error('Failed to send email');
+    }
+
+    this.logger.log(`Email sent to ${to}: ${subject}`);
+  }
 }
