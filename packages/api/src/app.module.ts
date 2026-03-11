@@ -6,6 +6,10 @@ import { HealthController } from './health.controller';
 import { PrismaService } from './prisma.service';
 import { AuthModule } from './auth/auth.module';
 import { FormsModule } from './forms/forms.module';
+import { TemplatesModule } from './templates/templates.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { VariantsModule } from './variants/variants.module';
+import { ValidationModule } from './validation/validation.module';
 import { validate } from './env.validation';
 
 @Global()
@@ -29,6 +33,10 @@ import { validate } from './env.validation';
     ]),
     AuthModule,
     FormsModule,
+    TemplatesModule,
+    AnalyticsModule,
+    VariantsModule,
+    ValidationModule,
   ],
   controllers: [HealthController],
   providers: [

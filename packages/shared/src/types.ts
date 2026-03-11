@@ -107,8 +107,85 @@ export interface FormDefinition {
   steps: Step[];
   theme: FormTheme;
   settings: FormSettings;
+  thankYouPage?: ThankYouPageConfig;
   createdAt: string;
   updatedAt: string;
+}
+
+// --- Thank-You Page Types ---
+
+export type ThankYouBlockType = 'heading' | 'text' | 'button' | 'offer' | 'script';
+
+export interface ThankYouBlock {
+  id: string;
+  type: ThankYouBlockType;
+  content: string;
+  /** URL for button/offer blocks */
+  url?: string;
+  /** Description for offer blocks */
+  description?: string;
+}
+
+export interface ThankYouPageConfig {
+  enabled: boolean;
+  blocks: ThankYouBlock[];
+}
+
+// --- Template Types ---
+
+export type TemplateVertical =
+  | 'solar'
+  | 'insurance'
+  | 'mortgage'
+  | 'home_services'
+  | 'real_estate'
+  | 'general';
+
+export interface TemplateInfo {
+  id: string;
+  title: string;
+  description: string;
+  vertical: TemplateVertical;
+  definition: FormDefinition;
+  thankYouPage?: ThankYouPageConfig;
+  createdAt: string;
+}
+
+// --- Analytics Event Types ---
+
+export type AnalyticsEventType =
+  | 'visit'
+  | 'form_start'
+  | 'step_view'
+  | 'step_submit'
+  | 'validation_fail'
+  | 'submit_success'
+  | 'abandon';
+
+export interface AnalyticsEvent {
+  type: AnalyticsEventType;
+  formId: string;
+  sessionId: string;
+  variantId?: string;
+  stepId?: string;
+  questionId?: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  timestamp: string;
+  metadata?: Record<string, string>;
+}
+
+// --- A/B Testing Types ---
+
+export interface FormVariant {
+  id: string;
+  formId: string;
+  name: string;
+  definition: FormDefinition;
+  weight: number;
+  active: boolean;
+  createdAt: string;
 }
 
 // --- API Types ---

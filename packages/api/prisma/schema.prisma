@@ -113,6 +113,7 @@ model Form {
   updatedAt   DateTime @updatedAt @map("updated_at")
   org         Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
   submissions FormSubmission[]
+  variants    FormVariant[]
 
   @@index([orgId])
   @@index([slug])
@@ -120,14 +121,93 @@ model Form {
 }
 
 model FormSubmission {
-  id        String   @id @default(cuid())
-  formId    String   @map("form_id")
-  data      Json
-  metadata  Json?
-  createdAt DateTime @default(now()) @map("created_at")
-  form      Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  formId          String   @map("form_id")
+  data            Json
+  encryptedPii    String?  @map("encrypted_pii")
+  metadata        Json?
+  idempotencyKey  String?  @unique @map("idempotency_key")
+  variantId       String?  @map("variant_id")
+  ip              String?
+  userAgent       String?  @map("user_agent")
+  consentTimestamp DateTime? @map("consent_timestamp")
+  formVersion     Int?     @map("form_version")
+  createdAt       DateTime @default(now()) @map("created_at")
+  form            Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
 
   @@index([formId])
   @@index([createdAt])
   @@map("form_submissions")
+}
+
+// --- Templates ---
+
+model Template {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  vertical    String
+  definition  Json
+  thankYouPage Json?   @map("thank_you_page")
+  orgId       String?  @map("org_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([vertical])
+  @@index([orgId])
+  @@map("templates")
+}
+
+// --- Analytics ---
+
+model AnalyticsEvent {
+  id          String   @id @default(cuid())
+  type        String
+  formId      String   @map("form_id")
+  sessionId   String   @map("session_id")
+  variantId   String?  @map("variant_id")
+  stepId      String?  @map("step_id")
+  questionId  String?  @map("question_id")
+  utmSource   String?  @map("utm_source")
+  utmMedium   String?  @map("utm_medium")
+  utmCampaign String?  @map("utm_campaign")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([formId])
+  @@index([formId, type])
+  @@index([sessionId])
+  @@index([createdAt])
+  @@map("analytics_events")
+}
+
+// --- A/B Testing ---
+
+model FormVariant {
+  id         String   @id @default(cuid())
+  formId     String   @map("form_id")
+  name       String
+  definition Json
+  weight     Int      @default(50)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  form       Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([formId])
+  @@map("form_variants")
+}
+
+// --- Validation Metering ---
+
+model ValidationMeter {
+  id               String   @id @default(cuid())
+  orgId            String   @map("org_id")
+  month            String
+  verificationType String   @map("verification_type")
+  count            Int      @default(0)
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@unique([orgId, month, verificationType])
+  @@map("validation_meters")
 }
