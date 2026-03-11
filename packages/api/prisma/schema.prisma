@@ -23,14 +23,21 @@ model User {
 }
 
 model Org {
-  id          String          @id @default(cuid())
-  name        String
-  slug        String          @unique
-  createdAt   DateTime        @default(now()) @map("created_at")
-  updatedAt   DateTime        @updatedAt @map("updated_at")
-  memberships OrgMembership[]
-  forms       Form[]
-  invites     OrgInvite[]
+  id               String          @id @default(cuid())
+  name             String
+  slug             String          @unique
+  plan             String          @default("free")
+  stripeCustomerId String?         @unique @map("stripe_customer_id")
+  stripeSubId      String?         @unique @map("stripe_sub_id")
+  customDomain     String?         @unique @map("custom_domain")
+  domainVerified   Boolean         @default(false) @map("domain_verified")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+  memberships      OrgMembership[]
+  forms            Form[]
+  invites          OrgInvite[]
+  webhooks         WebhookDestination[]
+  integrations     Integration[]
 
   @@map("orgs")
 }
@@ -210,4 +217,87 @@ model ValidationMeter {
 
   @@unique([orgId, month, verificationType])
   @@map("validation_meters")
+}
+
+// --- Webhooks ---
+
+model WebhookDestination {
+  id            String   @id @default(cuid())
+  orgId         String   @map("org_id")
+  formId        String?  @map("form_id")
+  name          String
+  url           String
+  method        String   @default("POST")
+  headers       Json?
+  fieldMapping  Json?    @map("field_mapping")
+  retryPolicy   Json?    @map("retry_policy")
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  org           Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  deliveryLogs  WebhookDeliveryLog[]
+
+  @@index([orgId])
+  @@index([formId])
+  @@map("webhook_destinations")
+}
+
+model WebhookDeliveryLog {
+  id              String   @id @default(cuid())
+  webhookId       String   @map("webhook_id")
+  submissionId    String   @map("submission_id")
+  status          String
+  statusCode      Int?     @map("status_code")
+  requestBody     Json?    @map("request_body")
+  responseBody    String?  @map("response_body")
+  errorMessage    String?  @map("error_message")
+  attempt         Int      @default(1)
+  durationMs      Int?     @map("duration_ms")
+  createdAt       DateTime @default(now()) @map("created_at")
+  webhook         WebhookDestination @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([submissionId])
+  @@index([status])
+  @@map("webhook_delivery_logs")
+}
+
+// --- Integrations (CRM, Lead Distribution) ---
+
+model Integration {
+  id            String   @id @default(cuid())
+  orgId         String   @map("org_id")
+  type          String
+  provider      String
+  config        Json
+  credentials   Json?
+  fieldMapping  Json?    @map("field_mapping")
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  org           Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  deliveryLogs  IntegrationDeliveryLog[]
+
+  @@index([orgId])
+  @@index([orgId, provider])
+  @@map("integrations")
+}
+
+model IntegrationDeliveryLog {
+  id              String   @id @default(cuid())
+  integrationId   String   @map("integration_id")
+  submissionId    String   @map("submission_id")
+  status          String
+  statusCode      Int?     @map("status_code")
+  requestBody     Json?    @map("request_body")
+  responseBody    String?  @map("response_body")
+  errorMessage    String?  @map("error_message")
+  attempt         Int      @default(1)
+  durationMs      Int?     @map("duration_ms")
+  createdAt       DateTime @default(now()) @map("created_at")
+  integration     Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@index([integrationId])
+  @@index([submissionId])
+  @@map("integration_delivery_logs")
 }
