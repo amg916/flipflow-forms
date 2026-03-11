@@ -87,6 +87,25 @@ export class FormsController {
     return { success: true, data: { embedCode } };
   }
 
+  @Get(':id/submissions')
+  @UseGuards(AuthGuard)
+  async listSubmissions(
+    @CurrentUser() user: { id: string },
+    @Param('id') id: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const result = await this.formsService.listSubmissions(user.id, id, {
+      page: page ? parseInt(page) : undefined,
+      limit: limit ? parseInt(limit) : undefined,
+      startDate,
+      endDate,
+    });
+    return { success: true, data: result };
+  }
+
   // --- Public endpoints (no auth) ---
 
   @Get('public/:id')
@@ -118,9 +137,21 @@ export class FormsController {
   @HttpCode(HttpStatus.CREATED)
   async submitForm(
     @Param('id') id: string,
-    @Body() body: { data: Record<string, unknown>; metadata?: Record<string, unknown> },
+    @Body()
+    body: {
+      data: Record<string, unknown>;
+      metadata?: Record<string, unknown>;
+      idempotencyKey?: string;
+      variantId?: string;
+      consentTimestamp?: string;
+    },
   ) {
-    const submission = await this.formsService.submitForm(id, body.data, body.metadata);
+    const submission = await this.formsService.submitForm(id, body.data, {
+      metadata: body.metadata,
+      idempotencyKey: body.idempotencyKey,
+      variantId: body.variantId,
+      consentTimestamp: body.consentTimestamp,
+    });
     return { success: true, data: { id: submission.id } };
   }
 }

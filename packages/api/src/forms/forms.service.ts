@@ -156,16 +156,69 @@ export class FormsService {
   async submitForm(
     formId: string,
     data: Record<string, unknown>,
-    metadata?: Record<string, unknown>,
+    opts?: {
+      metadata?: Record<string, unknown>;
+      idempotencyKey?: string;
+      variantId?: string;
+      ip?: string;
+      userAgent?: string;
+      consentTimestamp?: string;
+    },
   ) {
+    // Idempotency check
+    if (opts?.idempotencyKey) {
+      const existing = await this.prisma.formSubmission.findUnique({
+        where: { idempotencyKey: opts.idempotencyKey },
+      });
+      if (existing) return existing;
+    }
+
     const form = await this.findPublished(formId);
     return this.prisma.formSubmission.create({
       data: {
         formId: form.id,
         data: data as object,
-        metadata: (metadata as object) ?? undefined,
+        metadata: (opts?.metadata as object) ?? undefined,
+        idempotencyKey: opts?.idempotencyKey,
+        variantId: opts?.variantId,
+        ip: opts?.ip,
+        userAgent: opts?.userAgent,
+        consentTimestamp: opts?.consentTimestamp ? new Date(opts.consentTimestamp) : undefined,
+        formVersion: form.version,
       },
     });
+  }
+
+  /** List submissions for a form (admin) */
+  async listSubmissions(
+    userId: string,
+    formId: string,
+    opts?: { page?: number; limit?: number; startDate?: string; endDate?: string },
+  ) {
+    const form = await this.findOne(formId);
+    await this.ensureMembership(userId, form.orgId);
+
+    const page = opts?.page ?? 1;
+    const limit = opts?.limit ?? 50;
+    const where: Record<string, unknown> = { formId };
+    if (opts?.startDate || opts?.endDate) {
+      where.createdAt = {
+        ...(opts?.startDate && { gte: new Date(opts.startDate) }),
+        ...(opts?.endDate && { lte: new Date(opts.endDate) }),
+      };
+    }
+
+    const [submissions, total] = await Promise.all([
+      this.prisma.formSubmission.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.formSubmission.count({ where }),
+    ]);
+
+    return { submissions, total, page, limit };
   }
 
   private generateSlug(title: string, id: string): string {

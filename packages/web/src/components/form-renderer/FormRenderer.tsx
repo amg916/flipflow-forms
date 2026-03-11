@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { FormDefinition, FormAnswers } from '@flipflow/shared';
 import { getVisibleQuestions, resolveNextStep, getReachableSteps } from '@flipflow/shared';
 import { QuestionField } from './QuestionField';
+import { ThankYouRenderer } from '../thank-you/ThankYouRenderer';
+import { trackEvent } from '@/lib/analytics';
 
 interface FormRendererProps {
   definition: FormDefinition;
@@ -24,6 +26,18 @@ export function FormRenderer({ definition, onSubmit, embedded }: FormRendererPro
 
   const currentStepId = stepHistory[stepHistory.length - 1];
   const currentStep = steps.find((s) => s.id === currentStepId);
+
+  // Track visit on mount and step views
+  useEffect(() => {
+    trackEvent('visit', definition.id);
+    trackEvent('form_start', definition.id, { stepId: sortedSteps[0]?.id });
+  }, []);
+
+  useEffect(() => {
+    if (currentStepId) {
+      trackEvent('step_view', definition.id, { stepId: currentStepId });
+    }
+  }, [currentStepId, definition.id]);
 
   // Capture UTM/tracking params from URL
   const [metadata] = useState<Record<string, string>>(() => {
@@ -119,7 +133,12 @@ export function FormRenderer({ definition, onSubmit, embedded }: FormRendererPro
   };
 
   const handleNext = () => {
-    if (!validate() || !currentStep) return;
+    if (!validate() || !currentStep) {
+      trackEvent('validation_fail', definition.id, { stepId: currentStepId });
+      return;
+    }
+
+    trackEvent('step_submit', definition.id, { stepId: currentStepId });
 
     if (isLastStep) {
       handleSubmit();
@@ -145,6 +164,7 @@ export function FormRenderer({ definition, onSubmit, embedded }: FormRendererPro
     setIsSubmitting(true);
     try {
       await onSubmit(answers, metadata);
+      trackEvent('submit_success', definition.id);
       setSubmitted(true);
       if (settings.redirectUrl) {
         window.location.href = settings.redirectUrl;
@@ -155,6 +175,13 @@ export function FormRenderer({ definition, onSubmit, embedded }: FormRendererPro
   };
 
   if (submitted) {
+    if (definition.thankYouPage?.enabled && definition.thankYouPage.blocks.length > 0) {
+      return (
+        <div style={containerStyle(theme, embedded)}>
+          <ThankYouRenderer config={definition.thankYouPage} theme={theme} />
+        </div>
+      );
+    }
     return (
       <div style={containerStyle(theme, embedded)}>
         <div style={{ textAlign: 'center', padding: '48px 24px' }}>
