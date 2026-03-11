@@ -10,6 +10,9 @@ async function bootstrap() {
     logger: ['log', 'error', 'warn', 'debug'],
   });
 
+  // Graceful shutdown — lets in-flight requests finish before the process exits.
+  app.enableShutdownHooks();
+
   // Security
   app.use(helmet());
   app.use(cookieParser());
