@@ -24,6 +24,18 @@ export enum QuestionType {
   LEGAL = 'legal',
 }
 
+// --- Logic Condition Types ---
+
+export type LogicConditionOperator =
+  | 'equals'
+  | 'not_equals'
+  | 'contains'
+  | 'greater_than'
+  | 'less_than'
+  | 'is_empty';
+
+export type VisibilityConditionOperator = 'equals' | 'not_equals' | 'contains' | 'is_empty';
+
 // --- Form Schema Types ---
 
 export interface FormValidation {
@@ -43,7 +55,7 @@ export interface QuestionOption {
 
 export interface LogicRule {
   sourceQuestionId: string;
-  condition: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than';
+  condition: LogicConditionOperator;
   value: string;
   targetStepId: string;
 }
@@ -58,7 +70,7 @@ export interface Question {
   options?: QuestionOption[];
   conditionalVisibility?: {
     questionId: string;
-    condition: 'equals' | 'not_equals' | 'contains';
+    condition: VisibilityConditionOperator;
     value: string;
   };
 }

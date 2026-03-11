@@ -5,6 +5,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { HealthController } from './health.controller';
 import { PrismaService } from './prisma.service';
 import { AuthModule } from './auth/auth.module';
+import { FormsModule } from './forms/forms.module';
 import { validate } from './env.validation';
 
 @Global()
@@ -27,6 +28,7 @@ import { validate } from './env.validation';
       },
     ]),
     AuthModule,
+    FormsModule,
   ],
   controllers: [HealthController],
   providers: [
