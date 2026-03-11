@@ -1,8 +1,10 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { HealthController } from './health.controller';
+import { PrismaService } from './prisma.service';
 import { validate } from './env.validation';
 
+@Global()
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -11,5 +13,7 @@ import { validate } from './env.validation';
     }),
   ],
   controllers: [HealthController],
+  providers: [PrismaService],
+  exports: [PrismaService],
 })
 export class AppModule {}

@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Multi-tenant models ---
+
+model User {
+  id             String          @id @default(cuid())
+  email          String          @unique
+  name           String
+  passwordHash   String          @map("password_hash")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  memberships    OrgMembership[]
+  passwordTokens PasswordToken[]
+
+  @@map("users")
+}
+
+model Org {
+  id          String          @id @default(cuid())
+  name        String
+  slug        String          @unique
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+  memberships OrgMembership[]
+  forms       Form[]
+  invites     OrgInvite[]
+
+  @@map("orgs")
+}
+
+enum OrgRole {
+  owner
+  admin
+  editor
+  analyst
+}
+
+model OrgMembership {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  orgId     String   @map("org_id")
+  role      OrgRole  @default(editor)
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org       Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId])
+  @@index([orgId])
+  @@map("org_memberships")
+}
+
+model OrgInvite {
+  id        String   @id @default(cuid())
+  orgId     String   @map("org_id")
+  email     String
+  role      OrgRole  @default(editor)
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  org       Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([token])
+  @@map("org_invites")
+}
+
+// --- Auth ---
+
+model PasswordToken {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@map("password_tokens")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([token])
+  @@index([userId])
+  @@map("sessions")
+}
+
+// --- Forms ---
+
+model Form {
+  id          String   @id @default(cuid())
+  orgId       String   @map("org_id")
+  title       String
+  description String?
+  definition  Json
+  published   Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  org         Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  submissions FormSubmission[]
+
+  @@index([orgId])
+  @@map("forms")
+}
+
+model FormSubmission {
+  id        String   @id @default(cuid())
+  formId    String   @map("form_id")
+  data      Json
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  form      Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([formId])
+  @@index([createdAt])
+  @@map("form_submissions")
+}
