@@ -1,4 +1,5 @@
-import { Controller, Post, Body, Res, Get, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, Res, Get, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Response } from 'express';
 import { SESSION_COOKIE_NAME } from '@flipflow/shared';
 import { AuthService } from './auth.service';
@@ -8,9 +9,8 @@ import { EmailService } from './email.service';
 import { Cookies } from './cookies.decorator';
 import { CurrentUser } from './current-user.decorator';
 import { AuthGuard } from './auth.guard';
-import { UseGuards } from '@nestjs/common';
-
 @Controller('auth')
+@Throttle({ short: { ttl: 1000, limit: 3 }, medium: { ttl: 900000, limit: 10 } })
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
