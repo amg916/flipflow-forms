@@ -1,0 +1,49 @@
+import { Controller, Post, Body, Res, Get, HttpCode, HttpStatus } from '@nestjs/common';
+import { Response } from 'express';
+import { SESSION_COOKIE_NAME } from '@flipflow/shared';
+import { AuthService } from './auth.service';
+import { SignupDto, LoginDto } from './auth.dto';
+import { Cookies } from './cookies.decorator';
+import { CurrentUser } from './current-user.decorator';
+import { AuthGuard } from './auth.guard';
+import { UseGuards } from '@nestjs/common';
+
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+
+  @Post('signup')
+  async signup(@Body() dto: SignupDto, @Res({ passthrough: true }) res: Response) {
+    const user = await this.authService.signup(dto);
+    const session = await this.authService.login({ email: dto.email, password: dto.password });
+    this.authService.setSessionCookie(res, session.token);
+    return { success: true, data: user };
+  }
+
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
+    const session = await this.authService.login(dto);
+    this.authService.setSessionCookie(res, session.token);
+    return { success: true, data: session.user };
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(
+    @Cookies(SESSION_COOKIE_NAME) token: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    if (token) {
+      await this.authService.logout(token);
+    }
+    this.authService.clearSessionCookie(res);
+    return { success: true };
+  }
+
+  @Get('me')
+  @UseGuards(AuthGuard)
+  async me(@CurrentUser() user: { id: string; email: string; name: string }) {
+    return { success: true, data: user };
+  }
+}
